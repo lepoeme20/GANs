@@ -1,6 +1,5 @@
 # wGAN-GP
-This code is based on the paper:
-
+This code is based on the paper:  
 [paperlink]: https://arxiv.org/pdf/1704.00028.pdf  "wGAN-GP"
 
 Notice
