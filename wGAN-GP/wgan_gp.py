@@ -30,10 +30,10 @@ parser.add_argument("--sample_interval", type=int, default=400, help="interval b
 parser.add_argument("--checkpoint_interval", type=int, default=5, help="interval between model checkpoints")
 parser.add_argument("--lambda_gp", type=int, default=10, help="Loss weight for gradient penalty")
 parser.add_argument("--data_path", type=str, default='../data/cifar10', help="root path for dataset")
-args, _ = parser.parse_known_args()
-print(args)
+opt, _ = parser.parse_known_args()
+print(opt)
 
-img_shape = (args.channels, args.img_size, args.img_size)
+img_shape = (opt.channels, opt.img_size, opt.img_size)
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -50,10 +50,10 @@ class Generator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            *block(args.latent_dim, 8 * args.latent_dim, 4, 1, 0),
-            *block(8 * args.latent_dim, 4 * args.latent_dim, 4, 2, 1),
-            *block(4 * args.latent_dim, 2 * args.latent_dim, 4, 2, 1),
-            nn.ConvTranspose2d(2 * args.latent_dim, args.channels, 4, 2, 1),
+            *block(opt.latent_dim, 8 * opt.latent_dim, 4, 1, 0),
+            *block(8 * opt.latent_dim, 4 * opt.latent_dim, 4, 2, 1),
+            *block(4 * opt.latent_dim, 2 * opt.latent_dim, 4, 2, 1),
+            nn.ConvTranspose2d(2 * opt.latent_dim, opt.channels, 4, 2, 1),
             nn.Tanh()
         )
 
@@ -68,16 +68,16 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.model = nn.Sequential(
-            nn.Conv2d(args.channels, 2 * args.latent_dim, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(opt.channels, 2 * opt.latent_dim, kernel_size=4, stride=2, padding=1),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(2 * args.latent_dim, 4 * args.latent_dim, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(2 * opt.latent_dim, 4 * opt.latent_dim, kernel_size=4, stride=2, padding=1),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(4 * args.latent_dim, 8 * args.latent_dim, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(4 * opt.latent_dim, 8 * opt.latent_dim, kernel_size=4, stride=2, padding=1),
             nn.LeakyReLU(0.2, inplace=True),
         )
 
-        self.linear = nn.Linear(4 * 4 * 4 * args.latent_dim, 1)
-        self.output = nn.Conv2d(8 * args.latent_dim, 1, 4, 1, 0)
+        self.linear = nn.Linear(4 * 4 * 4 * opt.latent_dim, 1)
+        self.output = nn.Conv2d(8 * opt.latent_dim, 1, 4, 1, 0)
 
     def forward(self, img):
         out = self.model(img)
@@ -100,25 +100,25 @@ generator.to(device)
 discriminator.to(device)
 
 # Configure data loader
-os.makedirs(args.data_path, exist_ok=True)
+os.makedirs(opt.data_path, exist_ok=True)
 train_dataloader = torch.utils.data.DataLoader(
     torchvision.datasets.CIFAR10(
-        root=args.data_path,
+        root=opt.data_path,
         train=True,
         download=True,
         transform=transforms.Compose(
-            [transforms.Resize(args.img_size),
+            [transforms.Resize(opt.img_size),
              transforms.ToTensor(),
              transforms.Normalize([0.5], [0.5])]
         ),
     ),
-    batch_size=args.batch_size,
+    batch_size=opt.batch_size,
     shuffle=True,
 )
 
 # Optimizers
-optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr, betas=(args.b1, args.b2))
-optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lr, betas=(args.b1, args.b2))
+optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
+optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 
 
 def compute_gradient_penalty(D, real_samples, fake_samples):
@@ -143,7 +143,7 @@ def compute_gradient_penalty(D, real_samples, fake_samples):
         only_inputs=True,
     )[0]
     gradients = gradients.view(gradients.size(0), -1)
-    gradient_penalty = args.lambda_gp * ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+    gradient_penalty = opt.lambda_gp * ((gradients.norm(2, dim=1) - 1) ** 2).mean()
     return gradient_penalty
 
 
@@ -157,7 +157,7 @@ batches_done = 0
 one = torch.tensor(1, dtype=torch.float).to(device)
 mone = one * -1
 
-for epoch in range(args.n_epochs):
+for epoch in range(opt.n_epochs):
     for i, (imgs, _) in enumerate(train_dataloader):
 
         # Configure input
@@ -178,7 +178,7 @@ for epoch in range(args.n_epochs):
         d_loss_real.backward(mone)
 
         # Sample noise as generator input
-        z = torch.rand(imgs.size(0), args.latent_dim, 1, 1).to(device)
+        z = torch.rand(imgs.size(0), opt.latent_dim, 1, 1).to(device)
         # Generate a batch of images
         fake_imgs = generator(z)
         # Fake images
@@ -196,7 +196,7 @@ for epoch in range(args.n_epochs):
         optimizer_D.step()
 
         # Train the generator every n_critic steps
-        if i % args.n_critic == 0:
+        if i % opt.n_critic == 0:
 
             # -----------------
             #  (2) Update G
@@ -218,14 +218,14 @@ for epoch in range(args.n_epochs):
 
             print(
                 "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-                % (epoch, args.n_epochs, i, len(train_dataloader), d_loss.item(), g_cost.item())
+                % (epoch, opt.n_epochs, i, len(train_dataloader), d_loss.item(), g_cost.item())
             )
 
-            if batches_done % args.sample_interval == 0:
+            if batches_done % opt.sample_interval == 0:
                 save_image(fake_imgs.data[:25], "images/%d%s.png" % (batches_done, "_fake"), nrow=5, normalize=True)
                 # save_image(real_imgs.data[:25], "images/%d%s.png" % (batches_done, "_real"), nrow=5, normalize=True)
 
-            batches_done += args.n_critic
+            batches_done += opt.n_critic
 
     # if opt.checkpoint_interval != -1 and epoch % opt.checkpoint_interval == 0:
     #     # Save model checkpoints
