@@ -1,6 +1,7 @@
 # wGAN-GP
 This code is based on the paper:
-[paperlink]: https://arxiv.org/pdf/1704.00028.pdf "wGAN-GP"
+
+[paperlink]: https://arxiv.org/pdf/1704.00028.pdf  "wGAN-GP"
 
 Notice
 * You might be requried larger "latent_dim" when you use complicated data set
