@@ -29,7 +29,7 @@ parser.add_argument("--clip_value", type=float, default=0.01, help="lower and up
 parser.add_argument("--sample_interval", type=int, default=400, help="interval between image samples")
 parser.add_argument("--checkpoint_interval", type=int, default=5, help="interval between model checkpoints")
 parser.add_argument("--lambda_gp", type=int, default=10, help="Loss weight for gradient penalty")
-parser.add_argument("--data_path", type=str, default='./data/cifar10', help="root path for dataset")
+parser.add_argument("--data_path", type=str, default='../data/cifar10', help="root path for dataset")
 args, _ = parser.parse_known_args()
 print(args)
 
